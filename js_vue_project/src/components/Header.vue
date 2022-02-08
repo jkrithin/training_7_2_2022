@@ -1,15 +1,22 @@
 <template>
 <header>
   <h1>
-    Tasks !
+    {{ title }}
+
   </h1>
+
 </header>
 </template>
 
 <script>
 export default {
-  name: "Header"
+  name: "Header",
+  props: {
+    title: String,
+  }
+
 }
+
 </script>
 
 <style scoped>
@@ -17,5 +24,7 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 20px;
+    margin-left: 50px;
   }
 </style>
