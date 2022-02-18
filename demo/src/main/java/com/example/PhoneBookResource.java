@@ -67,19 +67,20 @@ public class PhoneBookResource {
     //put request
     //at http://localhost:8080/phonebook/2/6947650188
     @PUT
-    @Path("{id}/{phonenumber}")
+    @Path("{id}/{name}/{phonenumber}")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
     public Response updateContact(
             @PathParam("id") Integer id,
+            @PathParam("name") String name,
             @PathParam("phonenumber") String phonenumber){
         Contact con;
         for (Contact contact : contacts) {
             if (contact.getId().equals(id)) {
                 //table
                 contact.setPhonenumber(phonenumber);
-
+                contact.setName(name);
 
             }
         }
@@ -87,6 +88,7 @@ public class PhoneBookResource {
             //db
             con = em.find(Contact.class, id);
             con.setPhonenumber(phonenumber);
+            con.setName(name);
 
             // Save the contact object
             em.persist(con);

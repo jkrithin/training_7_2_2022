@@ -4,7 +4,7 @@ import org.flywaydb.core.Flyway;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.inject.Named;
+
 
 
     @ApplicationScoped

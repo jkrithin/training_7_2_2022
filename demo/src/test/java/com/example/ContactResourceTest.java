@@ -34,17 +34,16 @@ public class ContactResourceTest {
     @Inject
     AgroalDataSource ds;
 
-    private int BATCH_SIZE=1000;
-
-
+    private int BATCH_SIZE = 1000;
 
 
     @Transactional
     @BeforeEach
-    public void cleanup(){
+    public void cleanup() {
         contacts.clear();
         em.createNativeQuery("TRUNCATE contact").executeUpdate();
     }
+
     @Test
     public void testPhonebookGet() {
         given()
@@ -57,10 +56,11 @@ public class ContactResourceTest {
 
     @AfterEach
     @Transactional
-    public void cleanupA(){
+    public void cleanupA() {
         contacts.clear();
         em.createNativeQuery("TRUNCATE contact").executeUpdate();
     }
+
     @Test
     public void testPhonebookSize() {
         given()
@@ -73,64 +73,66 @@ public class ContactResourceTest {
     @Test
     public void testPhonebookInsert() {
         given()
-                .when().body("{\"id\": 2,\"phonenumber\": \"6947650192\"}" ).contentType(APPLICATION_JSON).post("/phonebook")
+                .when().body("{\"id\": 2,\"name\": \"foufout\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
                 .then()
                 .statusCode(200)
-                .body(is("[{\"id\":2,\"phonenumber\":\"6947650192\"}]"));
+                .body(is("[{\"id\":2,\"name\":\"foufout\",\"phonenumber\":\"6947650192\"}]"));
     }
 
     @Test
     public void testPhonebookReplace() {
 
         given()
-                .when().body("{\"id\": 2,\"phonenumber\": \"6947650192\"}" ).contentType(APPLICATION_JSON).post("/phonebook")
+                .when().body("{\"id\": 2,\"name\": \"gg\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
                 .then()
                 .statusCode(200);
         given()
-                .when().body("" ).contentType(APPLICATION_JSON).put("/phonebook/2/6947650188")
+                .when().body("").contentType(APPLICATION_JSON).put("/phonebook/2/gg/6947650188")
                 .then()
                 .statusCode(200)
-                .body(is("[{\"id\":2,\"phonenumber\":\"6947650188\"}]"));
+                .body(is("[{\"id\":2,\"name\":\"gg\",\"phonenumber\":\"6947650188\"}]"));
+
     }
 
 
     @Test
     public void testPhonebookRemove() {
         given()
-                .when().body("{\"id\": 2,\"phonenumber\": \"6947650192\"}" ).contentType(APPLICATION_JSON).post("/phonebook")
+                .when().body("{\"id\": 2,\"name\": \"gg\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
                 .then()
                 .statusCode(200);
         given()
-                .when().body("" ).contentType(APPLICATION_JSON).delete("/phonebook/2/")
+                .when().body("").contentType(APPLICATION_JSON).delete("/phonebook/2/")
                 .then()
                 .statusCode(200)
                 .body(is("[]"));
 
     }
+
     @Test
-    public void addContact_Jdbc(){
-        Instant now=null;
-        Contact newContact = new Contact(5,"690000000");
+    public void addContact_Jdbc() {
+        Instant now = null;
+        Contact newContact = new Contact(5, "Foufoutos", "690000000");
         //creating Calendar instance
 
         Statement stmt = null;
-        String query = "INSERT INTO contact(contactid, phonenumber) " +
-                "VALUES (?,?);";
+        String query = "INSERT INTO contact(id,name, phonenumber) " +
+                "VALUES (?,?,?);";
 
-        try(Connection con= ds.getConnection();PreparedStatement pstmt = con.prepareStatement(query)){
+        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query)) {
             now = Instant.now();
 
-            pstmt.setInt(1,newContact.getId());
-            pstmt.setString(2,newContact.getPhonenumber());
+            pstmt.setInt(1, newContact.getId());
+            pstmt.setString(2, newContact.getPhonenumber());
 
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
 
         Instant instant2 = Instant.now();
         Duration time = Duration.between(now, instant2);
-        System.out.println("Xreiastika :"+time+" gia to JDBC");
+        System.out.println("Xreiastika :" + time + " gia to JDBC");
 
     }
 
@@ -141,54 +143,51 @@ public class ContactResourceTest {
         Instant now = Instant.now();
         for (int i = 0; i < 10000; i++) {
 
-            Contact con = new Contact(i,"690000000");
+            Contact con = new Contact(i, "egw", "690000000");
             em.persist(con);
         }
         Instant instant2 = Instant.now();
         Duration time = Duration.between(now, instant2);
-        System.out.println("Xreiastika :"+time+" gia to batch 10000 JPA");
+        System.out.println("Xreiastika :" + time + " gia to batch 10000 JPA");
     }
 
     @Test
-    public void addBatchContacts_Jdbc(){
+    public void addBatchContacts_Jdbc() {
 
         Instant now = null;
         Statement stmt = null;
-        String query = "INSERT INTO contact VALUES (?,?);";
-        try(Connection con= ds.getConnection();PreparedStatement pstmt = con.prepareStatement(query)){
+        String query = "INSERT INTO contact VALUES (?,?,?);";
+        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query)) {
             con.setAutoCommit(false);
             now = Instant.now();
-            for(int i=1; i<= 10000;i++){
-                pstmt.setInt(1,i);
-                pstmt.setString(2,"690000");
+            for (int i = 1; i <= 10000; i++) {
+                pstmt.setInt(1, i);
+                pstmt.setString(2, "lolll");
+                pstmt.setString(3, "690000");
 
                 pstmt.addBatch();
             }
             int[] result = pstmt.executeBatch();
             //System.out.println("The number of rows inserted: "+ result.length);
             con.commit();
-        }catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
         Instant instant2 = Instant.now();
         Duration time = Duration.between(now, instant2);
-        System.out.println("Xreiastika :"+time+" gia to JDBC");
+        System.out.println("Xreiastika :" + time + " gia to JDBC");
 
     }
 
 
+}
 
 
 
 
 
-
-
-
-
-    @Transactional
-    @Test
+/*
     public void insertBatchFruitsJPA() {
         Instant now = Instant.now();
         for (int i = 0; i < 10000; i++) {
@@ -201,7 +200,7 @@ public class ContactResourceTest {
         System.out.println("Xreiastika :"+time+" gia to batch 10000 JPA me auto-generated");
     }
 
-    @Test
+
     public void addBatchFruits_Jdbc(){
 
         Instant now = null;
@@ -239,17 +238,6 @@ public class ContactResourceTest {
 
     }
 
+*/
 
 
-
-
-
-
-
-
-
-
-
-
-
-}
