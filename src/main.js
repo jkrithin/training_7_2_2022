@@ -4,7 +4,13 @@ import router from './router'
 import store from './store'
 import vuetify from './plugins/vuetify'
 
+import Login from './components/Login';
+
+
+
+
 Vue.config.productionTip = false
+router.replace('/login');
 
 new Vue({
   router,
@@ -12,3 +18,7 @@ new Vue({
   vuetify,
   render: h => h(App)
 }).$mount('#app')
+
+
+
+

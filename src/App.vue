@@ -1,5 +1,18 @@
 <template>
 <v-app>
+  <template v-if="!$route.path.includes('login')">
+
+    <v-alert
+        v-model="whenerror"
+        shaped
+        prominent
+        type="error"
+        class="mx-4"
+        max-width="800"
+        max-height="100"
+    >
+      An unexpected error happened. Please try again later !
+    </v-alert>
   <div style="height:50px;width:50px;"></div>
     <div style="width:500px;">
       <p class="mx-4">Number of Contacts : {{ newid-1 }}</p>
@@ -16,6 +29,7 @@
           outlined
           clearable
           class="mx-4"
+
       ></v-text-field>
       <v-btn
           class="mx-4"
@@ -43,7 +57,7 @@
     </div>
   <div style="height:50px;width:5px;"></div>
     <v-card
-        max-width="1500"
+        max-width="800"
         class="mx-4"
     >
       <v-toolbar
@@ -121,14 +135,17 @@
         <v-pagination
             v-model="currentPage"
             :length="totalPages"
-            :total-visible="10"
+            :total-visible="8"
             @input="updatePage"
         >
         </v-pagination>
       </div>
     </v-card>
+  </template>
     <v-main>
-      <router-view/>
+        <keep-alive :include="['Login']">
+          <router-view></router-view>
+        </keep-alive>
     </v-main>
   </v-app>
 </template>
@@ -148,7 +165,8 @@ export default {
       currentPage: 1,
       pageSize:5,
       totalPages:1,
-      items:[5,10,15]
+      items:[5,10,15],
+      whenerror:false
 
     }
   },
@@ -170,20 +188,20 @@ export default {
     async getDataFromApi() {
 
       this.loading = true
+      try {
+        const response = await axios.get('http://localhost:8080/phonebook/size');
+        this.newid = response.data + 1
+        console.log(this.newid)
+      }catch (error){
 
-      await axios.get('http://localhost:8080/phonebook/size')
-          .then(response => {
-            //this.loading = false
-            this.newid = response.data + 1
-            //console.log(this.newid)
-          })
-          .catch(error => {
-            this.loading = false
-            console.log(error)
-          })
+        console.log(error)
+        this.whenerror = true;
+      }finally {
+        this.loading = false
+      }
 
       this.totalPages = Math.floor(this.newid / this.pageSize);
-        this.updatePage();
+      this.updatePage();
     },
 
     addContact: function () {
@@ -198,15 +216,29 @@ export default {
           .catch(error => {
             this.loading = false
             //console.log(error)
-            alert('Your Contact could not be added');
+            this.whenerror = "Your Contact could not be added";
           })
-      //this.updateVisibleRows();
-
+      //this.getDataFromApi();
+      this.updatePage();
     },
 
     removeContact: function (index) {
-      alert('removing: ' + index + ' !')
+      //alert('removing: ' + index + ' !')
       //this.updateVisibleRows();
+
+      this.loading = true
+      axios.delete('http://localhost:8080/phonebook/'+index)
+          .then(response => {
+            this.loading = false
+            this.rows = response.data
+          })
+          .catch(error => {
+            this.loading = false
+            console.log(error)
+            //alert('Your Contact could not be added');
+          })
+      //this.getDataFromApi();
+      this.updatePage();
     },
 
     searchContact: function () {
@@ -226,7 +258,7 @@ export default {
         if ((this.fullName==="")||(this.fullName==null)){
           this.loading = true
           this.rows=[]
-          axios.get('http://localhost:8080/phonebook/sp/'+this.phoneNumber)
+          axios.get('http://localhost:8080/phonebook/sp/'+this.phoneNumber + '?page='+this.currentPage+'&limit='+this.pageSize)
               .then(response => {
                 this.data = response.data;
                 this.data.forEach((item) => {
@@ -241,7 +273,7 @@ export default {
 
           this.loading = true
           this.rows = [];
-          axios.get('http://localhost:8080/phonebook/sn/' + this.fullName)
+          axios.get('http://localhost:8080/phonebook/sn/' + this.fullName + '?page='+this.currentPage+'&limit='+this.pageSize)
               .then(response => {
                 this.data = response.data;
                 this.data.forEach((item) => {
@@ -250,6 +282,20 @@ export default {
                   console.log("found phonenumber: ", item.phonenumber)
                   this.rows.push(item)
 
+                });
+              })
+        }else{
+          //snp/{name}/{phonenumber}
+          this.loading = true
+          this.rows = [];
+          axios.get('http://localhost:8080/phonebook/snp/' + this.fullName +'/'+this.phoneNumber+ '?page='+this.currentPage+'&limit='+this.pageSize)
+              .then(response => {
+                this.data = response.data;
+                this.data.forEach((item) => {
+                  console.log("found id: ", item.id)
+                  console.log("found name: ", item.name)
+                  console.log("found phonenumber: ", item.phonenumber)
+                  this.rows.push(item)
                 });
               })
         }
@@ -291,12 +337,13 @@ export default {
 
 
       }
-
+      this.updatePage();
     },
+
     updatePage: function ()
     {
 
-
+      this.whenerror = false;
       axios.get('http://localhost:8080/phonebook?page='+this.currentPage+'&limit='+this.pageSize)
           .then(response => {
             this.loading = false
@@ -306,6 +353,7 @@ export default {
           .catch(error => {
             this.loading = false
             console.log(error)
+            this.whenerror = true;
           })
 
     },
