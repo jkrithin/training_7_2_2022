@@ -21,8 +21,6 @@ import java.time.Duration;
 import java.time.Instant;
 
 
-
-import static com.example.PhoneBookResource.contacts;
 import static io.restassured.RestAssured.given;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.hamcrest.CoreMatchers.is;
@@ -40,14 +38,13 @@ public class ContactResourceTest {
     @Transactional
     @BeforeEach
     public void cleanup() {
-        contacts.clear();
         em.createNativeQuery("TRUNCATE contact").executeUpdate();
     }
 
     @Test
     public void testPhonebookGet() {
         given()
-                .when().get("/phonebook")
+                .when().get("/phonebook?page=1&limit=5")
                 .then()
                 .statusCode(200)
                 .body(is("[]"));
@@ -57,7 +54,6 @@ public class ContactResourceTest {
     @AfterEach
     @Transactional
     public void cleanupA() {
-        contacts.clear();
         em.createNativeQuery("TRUNCATE contact").executeUpdate();
     }
 
