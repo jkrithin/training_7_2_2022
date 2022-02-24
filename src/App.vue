@@ -208,6 +208,7 @@ export default {
 
       this.newid++;
       this.loading = true
+
       axios.post('http://localhost:8080/phonebook',{"id": this.newid ,"name": this.fullName,"phonenumber": this.phoneNumber})
           .then(response => {
             this.loading = false
