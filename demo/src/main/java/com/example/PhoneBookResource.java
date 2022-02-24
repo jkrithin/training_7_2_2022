@@ -13,6 +13,9 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -68,12 +71,9 @@ public class PhoneBookResource {
             throw new BadRequestException();
         }
         if(!Strings.isNullOrEmpty(name)) {
-            properties.put("name", name);
-            properties.put("limit", limit.toString());
             try {
-
-                return em.unwrap(Session.class).createNativeQuery(Query, Contact.class).setProperties(properties).getResultList();
-
+                return em.unwrap(Session.class).createNativeQuery(Query, Contact.class)
+                        .setParameter("name", name).setParameter("limit", limit).getResultList();
             } catch (Exception e) {
                 logger.warn("Backend/DB problem in getContactFromNamePhoneBook ! Params: {},{}", page, limit);
                 throw new InternalServerErrorException();
@@ -91,13 +91,10 @@ public class PhoneBookResource {
             @QueryParam("page")Long page,
             @QueryParam("limit")Long limit
     ) {
-        long n=(page-1)*limit;
-        Map<String,String> properties = new HashMap<>();
         String Query = Strings.isNullOrEmpty(phonenumber)? null : "SELECT * FROM contact WHERE phonenumber=:phonenumber ORDER BY id ASC LIMIT :limit";
         if(!Strings.isNullOrEmpty(phonenumber)) {
-            properties.put("phonenumber", phonenumber);
-            properties.put("limit", limit.toString());
-            return em.unwrap(Session.class).createNativeQuery(Query,Contact.class).setProperties(properties).getResultList();
+            return em.unwrap(Session.class).createNativeQuery(Query,Contact.class)
+                    .setParameter("phonenumber", phonenumber).setParameter("limit", limit).getResultList();
         }else{
             throw new BadRequestException();
         }
@@ -113,14 +110,11 @@ public class PhoneBookResource {
             @QueryParam("page")Long page,
             @QueryParam("limit")Long limit
     ) {
-
-        Map<String,String> properties = new HashMap<>();
         String Query = Strings.isNullOrEmpty(name)? null : "SELECT * FROM contact WHERE name=:name AND phonenumber=:phonenumber ORDER BY id ASC LIMIT :limit";
         if(!Strings.isNullOrEmpty(name)&&!Strings.isNullOrEmpty(phonenumber)) {
-            properties.put("name", name);
-            properties.put("phonenumber", phonenumber);
-            properties.put("limit", limit.toString());
-            return em.unwrap(Session.class).createNativeQuery(Query,Contact.class).setProperties(properties).getResultList();
+            return em.unwrap(Session.class).createNativeQuery(Query,Contact.class)
+                    .setParameter("name", name).setParameter("phonenumber", phonenumber).setParameter("limit",limit)
+                    .getResultList();
         }else{
             throw new BadRequestException();
         }
@@ -140,7 +134,7 @@ public class PhoneBookResource {
 //            con.setAutoCommit(false);
 //            for (int i = 1; i < 1000000; i++) {
 //                pstmt.setInt(1, i);
-//                pstmt.setString(2, "foufoutos");
+//                pstmt.setString(2, "foufoutos"+i);
 //                pstmt.setString(3, "09011");
 //                pstmt.addBatch();
 //            }
@@ -150,6 +144,43 @@ public class PhoneBookResource {
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
+//        //users insert
+//        String query_user = "INSERT INTO users VALUES (?,?,?,?);";
+//        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query_user)) {
+//            con.setAutoCommit(false);
+//            for (int i = 1; i < 5; i++) {
+//                pstmt.setInt(1, i);
+//                pstmt.setString(2, "jkrithin"+i);
+//                pstmt.setString(3, "jkrithin"+i+"@cytech.gr");
+//                pstmt.setString(4, "123qwe");
+//                pstmt.addBatch();
+//            }
+//            int[] result = pstmt.executeBatch();
+//            //System.out.println("The number of rows inserted: "+ result.length);
+//            con.commit();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        String query_role = "INSERT INTO roles VALUES (?,?);";
+//        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query_role)) {
+//            con.setAutoCommit(false);
+//            for (int i = 1; i < 5; i++) {
+//                pstmt.setInt(1, i);
+//                pstmt.setString(2, "admin");
+//                pstmt.addBatch();
+//            }
+//            int[] result = pstmt.executeBatch();
+//            //System.out.println("The number of rows inserted: "+ result.length);
+//            con.commit();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+
+
+
+
+
 
         Query results =em.createNativeQuery("SELECT max(a.id) FROM contact a");
         return (Integer) results.getSingleResult();
