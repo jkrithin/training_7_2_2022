@@ -1,29 +1,27 @@
 package com.example;
 
 import io.agroal.api.AgroalDataSource;
-import java.time.*;
 import io.quarkus.test.junit.QuarkusTest;
-import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.configuration.Configuration;
+import io.quarkus.test.security.TestSecurity;
+import io.restassured.RestAssured;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
-import java.sql.Statement;
-import java.time.Duration;
 import java.time.Instant;
-
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.is;
 
 @QuarkusTest
 public class ContactResourceTest {
@@ -31,8 +29,8 @@ public class ContactResourceTest {
     EntityManager em;
     @Inject
     AgroalDataSource ds;
-
-    private int BATCH_SIZE = 1000;
+    @Inject
+    AuthHandler auth;
 
 
     @Transactional
@@ -43,11 +41,13 @@ public class ContactResourceTest {
 
     @Test
     public void testPhonebookGet() {
+        String jwt = auth.generateJwt("jkrithin1","admin");
+        Map headers = new HashMap<String,String>();
+        headers.put("Authorization","Bearer "+jwt);
         given()
-                .when().get("/phonebook?page=1&limit=5")
+                .when().headers(headers).get("/phonebook?page=1&limit=5")
                 .then()
-                .statusCode(200)
-                .body(is("[]"));
+                .statusCode(200);
     }
 
 
@@ -57,51 +57,121 @@ public class ContactResourceTest {
         em.createNativeQuery("TRUNCATE contact").executeUpdate();
     }
 
+    //@Test
+    @Transactional
+    public void setUpEverything(){
+        //for testing purpose only
+        String query = "INSERT INTO contact VALUES (?,?,?);";
+        try(
+        Connection con = ds.getConnection();
+        PreparedStatement pstmt = con.prepareStatement(query))
+        {
+            con.setAutoCommit(false);
+            for (int i = 1; i < 1000000; i++) {
+                pstmt.setInt(1, i);
+                pstmt.setString(2, "foufoutos" + i);
+                pstmt.setString(3, "09011"+i);
+                pstmt.addBatch();
+
+            }
+            //con.commit();
+            pstmt.executeBatch();
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        //users insert
+    //        String query_user = "INSERT INTO users VALUES (?,?,?,?);";
+    //        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query_user)) {
+    //            con.setAutoCommit(false);
+    //            for (int i = 1; i < 5; i++) {
+    //                pstmt.setInt(1, i);
+    //                pstmt.setString(2, "jkrithin"+i);
+    //                pstmt.setString(3, "jkrithin"+i+"@cytech.gr");
+    //                pstmt.setString(4, "123qwe");
+    //                pstmt.addBatch();
+    //            }
+    //            con.commit();
+    //        } catch (Exception e) {
+    //            e.printStackTrace();
+    //        }
+    //        String query_role = "INSERT INTO roles VALUES (?,?);";
+    //        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query_role)) {
+    //            con.setAutoCommit(false);
+    //            for (int i = 1; i < 5; i++) {
+    //                pstmt.setInt(1, i);
+    //                pstmt.setString(2, "admin");
+    //                pstmt.addBatch();
+    //            }
+    //            con.commit();
+    //        } catch (Exception e) {
+    //            e.printStackTrace();
+    //        }
+    }
+
+    @Test
+    public void testJwt() {
+        String jwt = auth.generateJwt("jkrithin1","admin");
+        Map headers = new HashMap<String,String>();
+        headers.put("Authorization","Bearer "+jwt);
+        given()
+                .when().headers(headers).get("/login/test-security-jwt").then()
+                .body(is("jkrithin1:admin"));
+    }
+
+
     @Test
     public void testPhonebookSize() {
+        String jwt = auth.generateJwt("jkrithin1","admin");
+        Map headers = new HashMap<String,String>();
+        headers.put("Authorization","Bearer "+jwt);
         given()
-                .when().get("/phonebook/size")
+                .when().headers(headers).get("/phonebook/size")
                 .then()
-                .statusCode(200)
-                .body(is("0"));
+                .statusCode(204);
     }
 
     @Test
     public void testPhonebookInsert() {
+        String jwt = auth.generateJwt("jkrithin1","admin");
+        Map headers = new HashMap<String,String>();
+        headers.put("Authorization","Bearer "+jwt);
         given()
-                .when().body("{\"id\": 2,\"name\": \"foufout\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
+                .when().headers(headers).body("{\"id\": 2,\"name\": \"foufout\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
                 .then()
-                .statusCode(200)
-                .body(is("[{\"id\":2,\"name\":\"foufout\",\"phonenumber\":\"6947650192\"}]"));
+                .statusCode(200);
     }
 
     @Test
     public void testPhonebookReplace() {
 
+        String jwt = auth.generateJwt("jkrithin1","admin");
+        Map headers = new HashMap<String,String>();
+        headers.put("Authorization","Bearer "+jwt);
         given()
-                .when().body("{\"id\": 2,\"name\": \"gg\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
+                .when().headers(headers).body("{\"id\": 2,\"name\": \"gg\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
                 .then()
                 .statusCode(200);
         given()
-                .when().body("").contentType(APPLICATION_JSON).put("/phonebook/2/gg/6947650188")
+                .when().headers(headers).body("").contentType(APPLICATION_JSON).put("/phonebook/2/gg/6947650188")
                 .then()
-                .statusCode(200)
-                .body(is("[{\"id\":2,\"name\":\"gg\",\"phonenumber\":\"6947650188\"}]"));
+                .statusCode(200);
 
     }
 
 
     @Test
     public void testPhonebookRemove() {
+        String jwt = auth.generateJwt("jkrithin1","admin");
+        Map headers = new HashMap<String,String>();
+        headers.put("Authorization","Bearer "+jwt);
         given()
-                .when().body("{\"id\": 2,\"name\": \"gg\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
+                .when().headers(headers).body("{\"id\": 2,\"name\": \"gg\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
                 .then()
                 .statusCode(200);
         given()
-                .when().body("").contentType(APPLICATION_JSON).delete("/phonebook/2/")
+                .when().headers(headers).body("").contentType(APPLICATION_JSON).delete("/phonebook/2/")
                 .then()
-                .statusCode(200)
-                .body(is("[]"));
+                .statusCode(200);
 
     }
 
@@ -110,8 +180,6 @@ public class ContactResourceTest {
         Instant now = null;
         Contact newContact = new Contact(5, "Foufoutos", "690000000");
         //creating Calendar instance
-
-        Statement stmt = null;
         String query = "INSERT INTO contact(id,name, phonenumber) " +
                 "VALUES (?,?,?);";
 
@@ -124,38 +192,24 @@ public class ContactResourceTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-        Instant instant2 = Instant.now();
-        Duration time = Duration.between(now, instant2);
-        System.out.println("Xreiastika :" + time + " gia to JDBC");
-
     }
 
     @Transactional
     @Test
     public void insertBatchJPA() {
-
-        Instant now = Instant.now();
         for (int i = 0; i < 10000; i++) {
 
             Contact con = new Contact(i, "egw", "690000000");
             em.persist(con);
         }
-        Instant instant2 = Instant.now();
-        Duration time = Duration.between(now, instant2);
-        System.out.println("Xreiastika :" + time + " gia to batch 10000 JPA");
     }
 
     @Test
     public void addBatchContacts_Jdbc() {
 
-        Instant now = null;
-        Statement stmt = null;
         String query = "INSERT INTO contact VALUES (?,?,?);";
         try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query)) {
             con.setAutoCommit(false);
-            now = Instant.now();
             for (int i = 1; i <= 10000; i++) {
                 pstmt.setInt(1, i);
                 pstmt.setString(2, "lolll");
@@ -163,17 +217,10 @@ public class ContactResourceTest {
 
                 pstmt.addBatch();
             }
-            int[] result = pstmt.executeBatch();
-            //System.out.println("The number of rows inserted: "+ result.length);
             con.commit();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        Instant instant2 = Instant.now();
-        Duration time = Duration.between(now, instant2);
-        System.out.println("Xreiastika :" + time + " gia to JDBC");
-
     }
 
 
@@ -181,59 +228,5 @@ public class ContactResourceTest {
 
 
 
-
-
-/*
-    public void insertBatchFruitsJPA() {
-        Instant now = Instant.now();
-        for (int i = 0; i < 10000; i++) {
-
-            Fruit con = new Fruit("Apple");
-            em.persist(con);
-        }
-        Instant instant2 = Instant.now();
-        Duration time = Duration.between(now, instant2);
-        System.out.println("Xreiastika :"+time+" gia to batch 10000 JPA me auto-generated");
-    }
-
-
-    public void addBatchFruits_Jdbc(){
-
-        Instant now = null;
-
-
-        String query = "INSERT INTO fruit VALUES (DEFAULT,?);";
-        try{
-            Connection con= DriverManager.getConnection(
-                    "jdbc:postgresql://localhost:5432/jkrithin","jkrithin","jkrithin");
-
-            PreparedStatement pstmt = con.prepareStatement(query);
-            con.setAutoCommit(false);
-
-            now = Instant.now();
-            for(int i=1; i<= 10000;i++){
-
-                pstmt.setString(1,"Apple");
-
-                pstmt.addBatch();
-            }
-            int[] result = pstmt.executeBatch();
-
-
-            //System.out.println("The number of rows inserted: "+ result.length);
-            con.commit();
-
-        }catch(Exception e) {
-            e.printStackTrace();
-        }
-        Instant instant2 = Instant.now();
-        Duration time = Duration.between(now, instant2);
-
-
-        System.out.println("Xreiastika :"+time+" gia to JDBC 10000 me auto-generated");
-
-    }
-
-*/
 
 

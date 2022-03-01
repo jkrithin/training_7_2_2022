@@ -2,9 +2,11 @@ package com.example;
 
 import com.google.common.base.Strings;
 import io.agroal.api.AgroalDataSource;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
@@ -15,7 +17,6 @@ import javax.ws.rs.core.Response;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -32,12 +33,17 @@ public class PhoneBookResource {
     EntityManager em;
     @Inject
     AgroalDataSource ds;
-
+    @Inject
+    JsonWebToken accessToken;
 
 
     //get request at http://localhost:8080/phonebook/
     @GET
-    public List<Contact> getPhoneBook(@QueryParam("page")Long page, @QueryParam("limit")Long limit) {
+    @RolesAllowed("admin")
+    public List<Contact> getPhoneBook(
+            @QueryParam("page")Long page,
+            @QueryParam("limit")Long limit
+            ){
 
         if((page==null)||(page<1)||(limit==null)||(limit<1)){
             logger.warn("Lathos Parametroi apo ton Xristi {},{}",page,limit);
@@ -46,7 +52,7 @@ public class PhoneBookResource {
         long n=(page-1)*limit;
         try {
             return em.unwrap(Session.class)
-                    .createNativeQuery("SELECT a.id, a.name, a.phonenumber FROM contact a WHERE a.id >:n ORDER BY a.id ASC LIMIT :limit", Contact.class)
+                    .createNativeQuery("SELECT a.id, a.name, a.phonenumber FROM contact a WHERE a.id >:n ORDER BY a.id LIMIT :limit", Contact.class)
                     .setParameter("n", n).setParameter("limit", limit).getResultList();
         }catch (Exception e){
             logger.warn("Backend/DB problem in getPhoneBook! Params: {},{}",page,limit);
@@ -59,13 +65,13 @@ public class PhoneBookResource {
     @GET
     @Path("sn/{name}")
     @Transactional
+    @RolesAllowed("admin")
     public List<Contact> getContactFromNamePhoneBook(
             @PathParam("name") String name,
             @QueryParam("page")Long page,
             @QueryParam("limit")Long limit
-    ) {
-        Map<String,String> properties = new HashMap<>();
-        String Query = Strings.isNullOrEmpty(name)? null : "SELECT * FROM contact WHERE name=:name ORDER BY id ASC LIMIT :limit";
+    ){
+        String Query = Strings.isNullOrEmpty(name)? null : "SELECT * FROM contact WHERE name=:name ORDER BY id LIMIT :limit";
         if((page==null)||(page<1)||(limit==null)||(limit<1)){
             logger.warn("Lathos Parametroi apo ton Xristi stin getContactFromNamePhoneBook: {},{}",page,limit);
             throw new BadRequestException();
@@ -85,13 +91,14 @@ public class PhoneBookResource {
     //get request at http://localhost:8080/phonebook/sp
     @GET
     @Path("sp/{phonenumber}")
+    @RolesAllowed("admin")
     @Transactional
     public List<Contact> getContactFromNumberPhoneBook(
             @PathParam("phonenumber") String phonenumber,
             @QueryParam("page")Long page,
             @QueryParam("limit")Long limit
-    ) {
-        String Query = Strings.isNullOrEmpty(phonenumber)? null : "SELECT * FROM contact WHERE phonenumber=:phonenumber ORDER BY id ASC LIMIT :limit";
+    ){
+        String Query = Strings.isNullOrEmpty(phonenumber)? null : "SELECT * FROM contact WHERE phonenumber=:phonenumber ORDER BY id LIMIT :limit";
         if(!Strings.isNullOrEmpty(phonenumber)) {
             return em.unwrap(Session.class).createNativeQuery(Query,Contact.class)
                     .setParameter("phonenumber", phonenumber).setParameter("limit", limit).getResultList();
@@ -104,13 +111,14 @@ public class PhoneBookResource {
     @GET
     @Path("snp/{name}/{phonenumber}")
     @Transactional
+    @RolesAllowed("admin")
     public List<Contact> getContactFromNameAndNumberPhoneBook(
             @PathParam("name") String name,
             @PathParam("phonenumber") String phonenumber,
             @QueryParam("page")Long page,
             @QueryParam("limit")Long limit
-    ) {
-        String Query = Strings.isNullOrEmpty(name)? null : "SELECT * FROM contact WHERE name=:name AND phonenumber=:phonenumber ORDER BY id ASC LIMIT :limit";
+    ){
+        String Query = Strings.isNullOrEmpty(name)? null : "SELECT * FROM contact WHERE name=:name AND phonenumber=:phonenumber ORDER BY id LIMIT :limit";
         if(!Strings.isNullOrEmpty(name)&&!Strings.isNullOrEmpty(phonenumber)) {
             return em.unwrap(Session.class).createNativeQuery(Query,Contact.class)
                     .setParameter("name", name).setParameter("phonenumber", phonenumber).setParameter("limit",limit)
@@ -125,63 +133,8 @@ public class PhoneBookResource {
     @GET
     @Transactional
     @Path("/size")
+    @RolesAllowed("admin")
     public Integer getCount(){
-
-        //for testing purpose only
-//        Statement stmt = null;
-//        String query = "INSERT INTO contact VALUES (?,?,?);";
-//        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query)) {
-//            con.setAutoCommit(false);
-//            for (int i = 1; i < 1000000; i++) {
-//                pstmt.setInt(1, i);
-//                pstmt.setString(2, "foufoutos"+i);
-//                pstmt.setString(3, "09011");
-//                pstmt.addBatch();
-//            }
-//            int[] result = pstmt.executeBatch();
-//            //System.out.println("The number of rows inserted: "+ result.length);
-//            con.commit();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        //users insert
-//        String query_user = "INSERT INTO users VALUES (?,?,?,?);";
-//        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query_user)) {
-//            con.setAutoCommit(false);
-//            for (int i = 1; i < 5; i++) {
-//                pstmt.setInt(1, i);
-//                pstmt.setString(2, "jkrithin"+i);
-//                pstmt.setString(3, "jkrithin"+i+"@cytech.gr");
-//                pstmt.setString(4, "123qwe");
-//                pstmt.addBatch();
-//            }
-//            int[] result = pstmt.executeBatch();
-//            //System.out.println("The number of rows inserted: "+ result.length);
-//            con.commit();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        String query_role = "INSERT INTO roles VALUES (?,?);";
-//        try (Connection con = ds.getConnection(); PreparedStatement pstmt = con.prepareStatement(query_role)) {
-//            con.setAutoCommit(false);
-//            for (int i = 1; i < 5; i++) {
-//                pstmt.setInt(1, i);
-//                pstmt.setString(2, "admin");
-//                pstmt.addBatch();
-//            }
-//            int[] result = pstmt.executeBatch();
-//            //System.out.println("The number of rows inserted: "+ result.length);
-//            con.commit();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-
-
-
-
-
-
         Query results =em.createNativeQuery("SELECT max(a.id) FROM contact a");
         return (Integer) results.getSingleResult();
     }
@@ -189,8 +142,12 @@ public class PhoneBookResource {
 
     @GET
     @Transactional
+    @RolesAllowed("admin")
     @Path("/searchsize")
-    public BigInteger getCountFromName(@QueryParam("name")String name,@QueryParam("phonenumber")String phonenumber){
+    public BigInteger getCountFromName(
+            @QueryParam("name")String name,
+            @QueryParam("phonenumber")String phonenumber
+            ){
         Map<String,String> properties = new HashMap<>();
         String Query = Strings.isNullOrEmpty(name)?"SELECT count(*) FROM (SELECT * FROM contact WHERE phonenumber=:phonenumber) as a":
                 Strings.isNullOrEmpty(phonenumber)?"SELECT count(*) FROM (SELECT * FROM contact WHERE name=:name) as a":
@@ -206,8 +163,6 @@ public class PhoneBookResource {
         }
 
         Query qu = em.unwrap(Session.class).createNativeQuery(Query).setProperties(properties);
-
-
         return (BigInteger) qu.getSingleResult();
     }
 
@@ -220,6 +175,7 @@ public class PhoneBookResource {
     //at http://localhost:8080/phonebook/
     @POST
     @Transactional
+    @RolesAllowed("admin")
     public Response addContact(Contact newContact){
         //JPA
         Instant now = Instant.now();
@@ -232,10 +188,6 @@ public class PhoneBookResource {
             Instant instant2 = Instant.now();
             Duration time = Duration.between(now, instant2);
             System.out.println("Xreiastika :" + time + " gia to JPA");
-
-            //JDBC
-            //addContact_Jdbc(newContact);
-
             return Response.ok().build();
         }else{
             throw new BadRequestException();
@@ -247,10 +199,13 @@ public class PhoneBookResource {
     @PUT
     @Path("{id}/{name}/{phonenumber}")
     @Transactional
+    @RolesAllowed("admin")
     public Response updateContact(
             @PathParam("id") Integer id,
             @PathParam("name") String name,
-            @PathParam("phonenumber") String phonenumber){
+            @PathParam("phonenumber") String phonenumber
+    ){
+        logger.warn("EDITING CONTACT {} {} {}",id,name,phonenumber);
         Contact con;
         try {
             //db
@@ -270,9 +225,11 @@ public class PhoneBookResource {
     //http://localhost:8080/phonebook/2
     @DELETE
     @Path("{id}")
+    @RolesAllowed("admin")
     @Transactional
     public Response removeContact(
-            @PathParam("id") Integer id){
+            @PathParam("id") Integer id
+    ){
         Contact con;
         try {
             con = em.find(Contact.class, id);
@@ -282,6 +239,5 @@ public class PhoneBookResource {
         }
         return Response.ok().build();
     }
-    ///////JDBC
 
 }
