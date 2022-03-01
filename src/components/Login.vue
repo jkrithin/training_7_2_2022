@@ -1,5 +1,16 @@
 <template>
   <v-app id="inspire">
+    <v-alert
+        v-model="whenerror"
+        shaped
+        prominent
+        type="error"
+        class="mx-auto"
+        max-width="800"
+        max-height="100"
+    >
+      You could not be logged in. Please try again  !
+    </v-alert>
     <v-main>
       <v-container fluid fill-height>
         <v-layout align-center justify-center>
@@ -45,16 +56,25 @@
 <script>
 import axios from "axios";
 
+
 export default {
 
 
   data() {
     return {
+      user:{
+        username: '',
+        password: '',
+        authenticated:false,
+      },
       loading: false,
       name: 'Login',
       username: '',
       password: '',
-      isAuthenticated:false
+      jwtToken:'',
+      whenerror:false,
+      loggedIn:false,
+      context:'1',
     }
 
 
@@ -62,23 +82,31 @@ export default {
   methods: {
     async attemptLogin() {
       this.loading = true
+
       console.log("Attempt to send login request");
       try {
 
         const response = await axios.post('http://localhost:8080/login',{"username": this.username,"password": this.password});
-        this.isAuthenticated = response.data;
-        console.log('Am I authenticated? '+this.isAuthenticated)
+        this.jwtToken = response.data;
+        this.loggedIn = true;
+        sessionStorage.setItem("jwt", this.jwtToken);
+
       }catch (error){
         console.log(error)
       }finally {
         this.loading = false
       }
 
-      if(!this.isAuthenticated) {
-        // If not authenticated, add a path where to redirect after login.
-        this.$router.push({ name: '', query: { redirect: '/login' } });
+      if(this.loggedIn) {
+
+        this.user = {"username": this.username,"password": this.password,authenticated: false};
+        await this.$store.dispatch("login",[this.$data.context, this.user]);
+
       }else{
-        this.$router.push({ name: '/', query: { redirect: '/' } });
+
+        // If not authenticated, add a path where to redirect after login.
+        this.whenerror=true;
+
       }
 
 

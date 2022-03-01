@@ -1,5 +1,5 @@
 <template>
-  <div class="about">
-    <h1>This is an about page</h1>
+  <div class="about" id="about">
+    <h1>Please LOGIN as admin</h1>
   </div>
 </template>
