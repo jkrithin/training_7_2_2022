@@ -2,13 +2,13 @@
   <v-app id="inspire">
   <div style="height:50px;width:50px;"></div>
   <div style="width:500px;">
-  <p class="mx-4">Number of Contacts : {{ newid-1 }}</p>
   <v-text-field
       v-model="fullName"
       label="Full Name"
       outlined
       clearable
       class="mx-4"
+
   ></v-text-field>
   <v-text-field
       v-model="phoneNumber"
@@ -124,13 +124,44 @@
     </v-list-item>
   </v-list>
   <div class="text-center">
-    <v-pagination
-        v-model="currentPage"
-        :length="totalPages"
-        :total-visible="8"
-        @input="updatePage"
+<!--    <v-pagination-->
+<!--        v-model="currentPage"-->
+<!--        :length=1-->
+<!--        :total-visible="1"-->
+<!--        @input="updatePage"-->
+<!--    >-->
+<!--    </v-pagination>-->
+    <v-btn
+        class="mx-2"
+        fab
+        dark
+        small
+        color="primary"
+        v-on:click="prevPage()"
+        id="prev"
     >
-    </v-pagination>
+      <v-icon dark>
+        mdi-arrow-left
+      </v-icon>
+    </v-btn>
+
+    <a class="mx-2">{{ currentPage }}</a>
+
+    <v-btn
+        class="mx-2"
+        fab
+        dark
+        small
+        color="primary"
+        v-on:click="nextPage()"
+        id="next"
+    >
+      <v-icon dark>
+        mdi-arrow-right
+      </v-icon>
+    </v-btn>
+
+
   </div>
   </v-card>
   </v-app>
@@ -146,44 +177,55 @@ export default {
     return {
       loading: false,
       rows: [],
-      visibleRows:[],
       newid: 0,
       fullName:"",
       phoneNumber: "",
       currentPage: 1,
       pageSize:5,
-      totalPages:1,
       items:[5,10,15],
       whenerror:false
-
     }
   },
   created() {
     this.getDataFromApi();
   },
   beforeMount() {
-    //this.getDataFromApi();
-    //this.totalPages = Math.floor(this.newid / this.pageSize);
+
   },
   mounted() {
-    //this.totalPages = Math.floor(this.newid / this.pageSize);
+
   },
   beforeUpdate() {
-    //this.totalPages = Math.floor(this.newid / this.pageSize);
-    //console.log('before update '+this.totalPages);
+
   },
   computed: {
     ...mapGetters(['loggedIn']),
   },
   methods: {
-    async getDataFromApi() {
 
+    prevPage: function() {
+      if (this.currentPage>1) {
+        this.currentPage--;
+        this.updatePage();
+      }
+    },
+
+    nextPage: function() {
+      this.currentPage++;
+      this.updatePage();
+    },
+
+    async getDataFromApi() {
+      this.updatePage();
+    },
+
+    addContact: async function() {
       this.loading = true
+      //get NEWID
       try {
-        //let token = sessionStorage.getItem("jwt")
         const response = await axios.get('http://localhost:8080/phonebook/size', {
           headers: {
-            'Authorization':`Bearer ${sessionStorage.getItem("jwt")}`,
+            'Authorization':`Bearer ${localStorage.getItem("jwt")}`,
             'Content-type':'application/json'
           }
         });
@@ -194,15 +236,8 @@ export default {
       }finally {
         this.loading = false
       }
-      this.totalPages = Math.floor(this.newid / this.pageSize);
-      //console.log("TOTAL PAGES : ",this.totalPages)
-      this.updatePage();
-    },
-
-    addContact: async function() {
       this.newid++;
-      this.loading = true
-
+      //add contact
       await axios.post('http://localhost:8080/phonebook', {
             "id": this.newid,
             "name": this.fullName,
@@ -210,7 +245,7 @@ export default {
           },
           {
             headers: {
-              'Authorization': `Bearer ${sessionStorage.getItem("jwt")}`,
+              'Authorization': `Bearer ${localStorage.getItem("jwt")}`,
               'Content-type': 'application/json'
             }
           })
@@ -223,18 +258,13 @@ export default {
             //console.log(error)
             this.whenerror = "Your Contact could not be added";
           })
-      //this.getDataFromApi();
-      //this.updatePage();
-      this.searchContact();
+      this.updatePage();
     },
 
     removeContact: async function (index) {
-      //alert('removing: ' + index + ' !')
-      //this.updateVisibleRows();
-
       this.loading = true
       await axios.delete('http://localhost:8080/phonebook/'+index,{ headers: {
-          'Authorization':`Bearer ${sessionStorage.getItem("jwt")}`,
+          'Authorization':`Bearer ${localStorage.getItem("jwt")}`,
           'Content-type':'application/json'
         } })
           .then(response => {
@@ -244,42 +274,27 @@ export default {
           .catch(error => {
             this.loading = false
             console.log(error)
-            //alert('Your Contact could not be added');
+            alert('Your Contact could not be removed');
           })
-      //this.getDataFromApi();
       this.updatePage();
     },
 
     searchContact: function () {
-      console.log('NAME '+this.fullName);
-      console.log('PHONE '+this.phoneNumber);
-
       if ((!this.fullName) && (!this.phoneNumber)){
-        //alert('Please enter a value in Full Name or Phone Number ! ')
-        //this.updatePage();
-        //this.totalPages=0;
         this.getDataFromApi();
-
       }else {
-        //this.currentPage=1;
-        //this.totalPages = 1;
-        //this.updatePage();
-        //alert('values in Full Name or Phone Number '+this.fullName+' and '+this.phoneNumber)
         if ((this.fullName === "") || (this.fullName == null)) {
           this.loading = true
           this.rows = []
           axios.get('http://localhost:8080/phonebook/sp/' + this.phoneNumber + '?page=' + this.currentPage + '&limit=' + this.pageSize, {
             headers: {
-              'Authorization': `Bearer ${sessionStorage.getItem("jwt")}`,
+              'Authorization': `Bearer ${localStorage.getItem("jwt")}`,
               'Content-type': 'application/json'
             }
           })
               .then(response => {
                 this.data = response.data;
                 this.data.forEach((item) => {
-                  // console.log("found id: ", item.id)
-                  // console.log("found name: ", item.name)
-                  // console.log("found phonenumber: ", item.phonenumber)
                   this.rows.push(item)
                 });
               })
@@ -290,18 +305,14 @@ export default {
           axios.get('http://localhost:8080/phonebook/sn/' + this.fullName + '?page=' + this.currentPage + '&limit=' + this.pageSize,
               {
                 headers: {
-                  'Authorization': `Bearer ${sessionStorage.getItem("jwt")}`,
+                  'Authorization': `Bearer ${localStorage.getItem("jwt")}`,
                   'Content-type': 'application/json'
                 }
               })
               .then(response => {
                 this.data = response.data;
                 this.data.forEach((item) => {
-                  // console.log("found id: ", item.id)
-                  // console.log("found name: ", item.name)
-                  // console.log("found phonenumber: ", item.phonenumber)
                   this.rows.push(item)
-
                 });
               })
         } else {
@@ -310,43 +321,22 @@ export default {
           this.rows = [];
           axios.get('http://localhost:8080/phonebook/snp/' + this.fullName + '/' + this.phoneNumber + '?page=' + this.currentPage + '&limit=' + this.pageSize, {
             headers: {
-              'Authorization': `Bearer ${sessionStorage.getItem("jwt")}`,
+              'Authorization': `Bearer ${localStorage.getItem("jwt")}`,
               'Content-type': 'application/json'
             }
           })
               .then(response => {
                 this.data = response.data;
                 this.data.forEach((item) => {
-                  // console.log("found id: ", item.id)
-                  // console.log("found name: ", item.name)
-                  // console.log("found phonenumber: ", item.phonenumber)
                   this.rows.push(item)
                 });
               })
         }
 
-
-        axios.get('http://localhost:8080/phonebook/searchsize?name=' + this.fullName + '&phonenumber=' + this.phoneNumber,
-            {
-              headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem("jwt")}`,
-                'Content-type': 'application/json'
-              }
-            })
-            .then(response => {
-              this.loading = false
-              //console.log("search size is :", response.data)
-              this.totalPages = Math.floor(response.data / this.pageSize) +1
-            })
-            .catch(error => {
-              this.loading = false
-              console.log(error)
-            })
-
       }
     },
+
     editContact: async function (index) {
-      //alert('editing: ' + index + ' !')
       //put request
       //at http://localhost:8080/phonebook/2/6947650188
       if ((this.fullName == null) && (this.phoneNumber == null)) {
@@ -354,10 +344,10 @@ export default {
       } else {
 
         this.loading = true
-        console.log("editing !",sessionStorage.getItem("jwt"))
+        console.log("editing !",localStorage.getItem("jwt"))
         await axios.put('http://localhost:8080/phonebook/' + index + '/' + this.fullName + '/' + this.phoneNumber,
             {  },{headers: {
-                'Authorization':`Bearer ${sessionStorage.getItem("jwt")}`,
+                'Authorization':`Bearer ${localStorage.getItem("jwt")}`,
                 'Content-type':'application/json'
               }})
             .then(res => {
@@ -369,19 +359,17 @@ export default {
               this.rows = [];
               this.rows.push(newItem);
             })
-
-
       }
       this.updatePage();
     },
 
     updatePage: function ()
     {
-      //console.log('Logged in! Token: ',this.$store.state.user.token)
+      localStorage.setItem("jwt",this.$store.state.user.token);
       this.whenerror = false;
       axios.get('http://localhost:8080/phonebook?page=' + this.currentPage + '&limit=' + this.pageSize,
           { headers: {
-              'Authorization':`Bearer ${sessionStorage.getItem("jwt")}`,
+              'Authorization':`Bearer ${localStorage.getItem("jwt")}`,
               'Content-type':'application/json'
             } })
           .then(response => {

@@ -20,6 +20,7 @@ describe('User login', () => {
     cy.get('button').should('exist');
     cy.get('window:alert').should('not.exist');
     cy.get('button').click({force:true});
+    cy.wait(1000);
     cy.on('window:alert', (str) => {
       expect(str).to.equal(`You could not be logged in. Please try again !`)
     })
@@ -30,7 +31,14 @@ describe('User login', () => {
   it ('Submits Login form', () => {
     cy.get('input#input-17').type(user.username);
     cy.get('input#password').type(user.password);
-    cy.get('button').click({force:true});
+    cy.get('button').click({force:true}).then((response)=>{
+      let X = response;
+      //cy.get(X).should('exist');
+    });
+
+    cy.wait(1000);
+
+
     cy.get('window:alert').should('not.exist');
     cy.get('input#input-17').should('not.exist');
     cy.get('input#password').should('not.exist');
@@ -44,22 +52,31 @@ describe('User login', () => {
   });
 
   describe('User login', () => {
-    it('Adds a new Contact, edits and then removes it', () => {
+    it('Adds a new Contact, ', () => {
       cy.get('input#input-28').type(contact.name);
       cy.get('input#input-31').type(contact.phonenumber);
       cy.get('button#add').click({force: true});
+      cy.wait(1000);
       cy.get('window:alert').should('not.exist');
       cy.get('button#search').click({force: true});
       cy.get('window:alert').should('not.exist');
+      cy.wait(1000);
       //edit contact
       cy.get('input#input-28').clear();
       cy.get('input#input-31').clear();
       cy.get('input#input-28').type(editedcontact.name);
       cy.get('input#input-31').type(editedcontact.phonenumber);
+      cy.wait(1000);
       cy.get('button#edit').click({force: true});
-      cy.get('window:alert').should('not.exist');
+      cy.get('window:alert').should('not.exist');}
+    );
+      it(' edits and then removes it', () => {
+      cy.get('input#input-28').clear();
+      cy.get('input#input-31').clear();
+      cy.get('input#input-28').type(editedcontact.name);
+      cy.get('input#input-31').type(editedcontact.phonenumber);
       cy.get('button#search').click({force: true});
-      cy.get('window:alert').should('not.exist');
+      cy.wait(1000);
       cy.get('button#delete').click({force: true});
       cy.get('window:alert').should('not.exist');
       cy.get('button#search').click({force: true});
@@ -71,6 +88,7 @@ describe('User login', () => {
       cy.get('input#input-28').clear();
       cy.get('input#input-31').clear();
       cy.get('button#search').click({force: true});
+      cy.wait(1000);
       cy.get('#contactsPerpage').click({force: true}).should('exist');
 
     });

@@ -82,34 +82,18 @@ export default {
   methods: {
     async attemptLogin() {
       this.loading = true
-
-      console.log("Attempt to send login request");
+      //console.log("Attempt to send login request");
       try {
-
-        const response = await axios.post('http://localhost:8080/login',{"username": this.username,"password": this.password});
-        this.jwtToken = response.data;
+        this.user = {"username": this.username,"password": this.password , authenticated: false};
+        await this.$store.dispatch("login",[this.$data.context, this.user]);
         this.loggedIn = true;
-        sessionStorage.setItem("jwt", this.jwtToken);
-
+        localStorage.setItem("jwt", this.jwtToken);
+        this.jwtToken = localStorage.getItem("jwt");
       }catch (error){
         console.log(error)
       }finally {
         this.loading = false
       }
-
-      if(this.loggedIn) {
-
-        this.user = {"username": this.username,"password": this.password,authenticated: false};
-        await this.$store.dispatch("login",[this.$data.context, this.user]);
-
-      }else{
-
-        // If not authenticated, add a path where to redirect after login.
-        this.whenerror=true;
-
-      }
-
-
     }
   },
 };

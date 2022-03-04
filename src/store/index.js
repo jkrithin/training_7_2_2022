@@ -32,6 +32,7 @@ export default new Vuex.Store({
     }
 
 
+
   },
   getters: {
     loggedIn(state) {
@@ -52,7 +53,7 @@ export default new Vuex.Store({
       state.user.country = user.country;
       state.user.token = user.token;
       state.user.tokenExpirationTime = user.tokenExpirationTime;
-
+      localStorage.setItem("jwt",user.token);
       if (state.user.authenticated) {
         localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(state.user));
       } else {
@@ -75,6 +76,7 @@ export default new Vuex.Store({
     async login(context, user) {
 
       try {
+        console.log("Request sent: " , {"username":user[1].username,"password": user[1].password});
         const resp = await axios.post(`http://localhost:8080/login`, {"username":user[1].username,"password": user[1].password});
         await context.dispatch('handleLoginResponse', resp);
       } catch (e) {
@@ -83,13 +85,14 @@ export default new Vuex.Store({
     },
     async handleLoginResponse(context, resp) {
 
-      const userResponse = resp;
-      const token = userResponse.data;
+
+      const response = resp.data;
       var json = JSON.parse(resp.config.data);
       const username = json["username"];
+      if (response){
 
-      if (token){
-        const jwtObj = jwtDecode(token);
+        const token = resp.data.jwt;
+        const jwtObj = jwtDecode(resp.data.jwt);
         const tokenExpirationTime = jwtObj.exp;
 
         if (hasTokenExpired(tokenExpirationTime)) {
