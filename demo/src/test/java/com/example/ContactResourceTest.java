@@ -2,12 +2,8 @@ package com.example;
 
 import io.agroal.api.AgroalDataSource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.security.TestSecurity;
-import io.restassured.RestAssured;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -74,7 +70,6 @@ public class ContactResourceTest {
                 pstmt.addBatch();
 
             }
-            //con.commit();
             pstmt.executeBatch();
         } catch(Exception e){
             e.printStackTrace();
@@ -133,7 +128,7 @@ public class ContactResourceTest {
     @Test
     public void testPhonebookInsert() {
         String jwt = auth.generateJwt("jkrithin1","admin");
-        Map headers = new HashMap<String,String>();
+        Map<String, String> headers = new HashMap<>();
         headers.put("Authorization","Bearer "+jwt);
         given()
                 .when().headers(headers).body("{\"id\": 2,\"name\": \"foufout\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")
@@ -145,7 +140,7 @@ public class ContactResourceTest {
     public void testPhonebookReplace() {
 
         String jwt = auth.generateJwt("jkrithin1","admin");
-        Map headers = new HashMap<String,String>();
+        Map<String, String> headers = new HashMap<>();
         headers.put("Authorization","Bearer "+jwt);
         given()
                 .when().headers(headers).body("{\"id\": 2,\"name\": \"gg\",\"phonenumber\": \"6947650192\"}").contentType(APPLICATION_JSON).post("/phonebook")

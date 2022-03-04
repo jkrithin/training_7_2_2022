@@ -9,13 +9,13 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="roles")
+@Table(name = "roles")
 public class Role extends PanacheEntityBase {
-    private static final Logger logger= LoggerFactory.getLogger(Role.class);
+    private static final Logger logger = LoggerFactory.getLogger(Role.class);
     @Id
     @Column(name = "id" , unique = true)
     private Long id;
-    @Column(name = "name", nullable = false)
+    @Column(name = "role", nullable = false)
     private String name;
 
     public Role() {
@@ -26,8 +26,19 @@ public class Role extends PanacheEntityBase {
         this.name = name;
     }
 
-    public Long getId() {return id;}
-    public void setId(Long id) {this.id = id;}
-    public String getName() {return name;}
-    public void setName(String name) {this.name = name;}
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

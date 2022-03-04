@@ -5,6 +5,7 @@ import io.quarkus.security.Authenticated;
 import org.eclipse.microprofile.auth.LoginConfig;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.hibernate.Session;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.annotation.security.PermitAll;
@@ -28,50 +29,54 @@ import java.util.Map;
 @Produces(MediaType.APPLICATION_JSON)
 @RequestScoped
 public class UserResource {
-    private static final Logger logger= LoggerFactory.getLogger(UserResource.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserResource.class);
     @Inject
     EntityManager em;
-    @Inject AuthHandler authHandler;
+    @Inject
+    AuthHandler authHandler;
     @Inject
     JsonWebToken jwt;
-
-
 
     @POST
     @PermitAll
     public String login(AppUser user) {
-        logger.warn("Login attempted by Username {} with pass {} ...",
-                               user.getUsername(),user.getPassword());
-        if (Strings.isNullOrEmpty(user.getUsername())){
+        String validate;
+        logger.warn("Login attempted by Username {}  ...",user.getUsername());
+
+        if (Strings.isNullOrEmpty(user.getUsername())) {
             throw new BadRequestException();
         }
-        return validateCredentials(user);
+        JSONObject json = new JSONObject();
+        validate = validateCredentials(user);
+        json.put("jwt", validate);
+        logger.warn("Generating JWT token {}  ...",validate);
+        return json.toString();
     }
 
     @Transactional
-    protected String validateCredentials(AppUser user){
+    protected String validateCredentials(AppUser user) {
         Map<String,String> properties = new HashMap<>();
         AppUser existingUserInDB;
         try {
-            String query = "SELECT * FROM users WHERE :username IN (name,username)";
-            Query qu = em.unwrap(Session.class).createNativeQuery(query, AppUser.class).setParameter("username",user.getUsername());
+            String query = "SELECT * FROM users as a " +
+                    "JOIN roles as role USING(id) WHERE :username IN (a.name,a.username)";
+            Query qu = em.unwrap(Session.class).createNativeQuery(query, AppUser.class)
+                    .setParameter("username",user.getUsername());
             existingUserInDB = (AppUser) qu.getSingleResult();
-            logger.warn("Data from DB : username/email {} ID {} ", existingUserInDB.getUsername(),existingUserInDB.getId());
-            if( existingUserInDB.areEqual(user) ) {
-                query = "SELECT name FROM roles WHERE id=:userId";
-                qu = em.unwrap(Session.class).createNativeQuery(query).setParameter("userId",existingUserInDB.getId());
-                logger.warn("ROLE: {} ",qu.getSingleResult());
-                return authHandler.generateJwt(existingUserInDB.getUsername(),qu.getSingleResult().toString());
-            }else{
+            logger.warn("GOT THIS : {}",existingUserInDB.getRole());
+            logger.warn("username/email {} ID {} ", existingUserInDB.getUsername(),existingUserInDB.getId());
+            if (existingUserInDB.areEqual(user) &&
+                    authHandler.checkPassword(user.getPassword(), existingUserInDB.getPassword())) {
+                return authHandler.generateJwt(existingUserInDB.getUsername(),existingUserInDB.getRole());
+            } else {
                 throw new BadRequestException();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
+            logger.warn("ValidateCredentials : username : {}",user.getUsername());
             logger.warn("Exception at validateCredentials : {}",e);
             throw new BadRequestException();
         }
     }
-
-
 
     @GET
     @Path("test-security-jwt")
@@ -80,7 +85,6 @@ public class UserResource {
         logger.warn("TESTING SECURITY with token {} ", jwt.getClaimNames());
         logger.warn("TESTING SECURITY with token {} ", jwt.getGroups());
         logger.warn("TESTING SECURITY with token {}",jwt.getSubject());
-
         return jwt.getName() + ":" + jwt.getGroups().iterator().next();
     }
 
@@ -92,6 +96,7 @@ public class UserResource {
         Principal caller =  ctx.getUserPrincipal();
         String name = caller == null ? "anonymous" : caller.getName();
         boolean hasJWT = jwt.getClaimNames() != null;
-        return String.format("hello + %s, isSecure: %s, authScheme: %s, hasJWT: %s", name, ctx.isSecure(), ctx.getAuthenticationScheme(), hasJWT);
+        return String.format("hello + %s, isSecure: %s, authScheme: %s, hasJWT: %s",
+                name, ctx.isSecure(), ctx.getAuthenticationScheme(), hasJWT);
     }
 }
