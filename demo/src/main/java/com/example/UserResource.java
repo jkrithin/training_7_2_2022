@@ -46,6 +46,7 @@ public class UserResource {
         if (Strings.isNullOrEmpty(user.getUsername())) {
             throw new BadRequestException();
         }
+
         JSONObject json = new JSONObject();
         validate = validateCredentials(user);
         json.put("jwt", validate);
