@@ -172,11 +172,9 @@ public class PhoneBookResource {
             try {
                 em.persist(newContact);
             } catch (Exception ex) {
+                logger.warn("DB Exception at addContact with params: name {} ",newContact.getName());
                 ex.printStackTrace();
             }
-            Instant instant2 = Instant.now();
-            Duration time = Duration.between(now, instant2);
-            System.out.println("Xreiastika :" + time + " gia to JPA");
             return Response.ok().build();
         } else {
             logger.warn("Exception at addContact with params: name {} number {}",newContact.getName(),newContact.getPhonenumber());

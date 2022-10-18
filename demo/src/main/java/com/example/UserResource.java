@@ -53,6 +53,7 @@ public class UserResource {
         return json.toString();
     }
 
+
     @Transactional
     protected String validateCredentials(AppUser user) {
         Map<String,String> properties = new HashMap<>();
